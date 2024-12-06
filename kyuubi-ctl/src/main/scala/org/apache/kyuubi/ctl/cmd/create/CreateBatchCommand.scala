@@ -16,9 +16,12 @@
  */
 package org.apache.kyuubi.ctl.cmd.create
 
+import java.nio.file.Paths
 import java.util.{Collections, List => JList, Map => JMap}
 
 import scala.collection.JavaConverters._
+
+import org.apache.hadoop.fs.Path
 
 import org.apache.kyuubi.client.BatchRestApi
 import org.apache.kyuubi.client.api.v1.dto.{Batch, BatchRequest}
@@ -59,7 +62,29 @@ class CreateBatchCommand(cliConfig: CliConfig) extends Command[Batch](cliConfig)
         config,
         args)
 
-      batchRestApi.createBatch(batchRequest)
+      val pathType = checkPathType(batchRequest.getResource)
+      if (pathType == "HDFS") {
+        batchRestApi.createBatch(batchRequest)
+      } else if (pathType == "Local") {
+        val file = Paths.get(batchRequest.getResource).toFile
+        batchRestApi.createBatch(batchRequest, file)
+      } else {
+        error(s"Unsupported resource path")
+        throw ControlCliException(1)
+      }
+    }
+  }
+
+  private def checkPathType(pathString: String): String = {
+    val path = new Path(pathString)
+    val scheme = path.toUri.getScheme
+
+    scheme match {
+      case "hdfs" => "HDFS"
+      case "s3" => "S3"
+      case "file" => "Local"
+      case null => "Local"
+      case _ => "Unknown"
     }
   }
 

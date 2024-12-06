@@ -1363,7 +1363,8 @@ public class Commands {
       if (beeLine.getDatabaseConnection().getCurrentConnection() != null
           && !(beeLine.getDatabaseConnection().getCurrentConnection().isClosed())) {
         int index = beeLine.getDatabaseConnections().getIndex();
-        beeLine.info(beeLine.loc("closing", index, beeLine.getDatabaseConnection()));
+        // beeLine.info(beeLine.loc("closing", index, beeLine.getDatabaseConnection()));
+        beeLine.info(beeLine.loc("closing", index, "kyuubi"));
         beeLine.getDatabaseConnection().getCurrentConnection().close();
       } else {
         beeLine.info(beeLine.loc("already-closed"));

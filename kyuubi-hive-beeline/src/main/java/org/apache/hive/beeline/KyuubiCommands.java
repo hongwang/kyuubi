@@ -466,7 +466,8 @@ public class KyuubiCommands extends Commands {
       }
     }
 
-    beeLine.info("Connecting to " + url);
+    // beeLine.info("Connecting to " + url);
+    beeLine.info("Connecting to kyuubi");
     if (Utils.parsePropertyFromUrl(url, AUTH_PRINCIPAL) == null
         && Utils.parsePropertyFromUrl(url, AUTH_KYUUBI_SERVER_PRINCIPAL) == null) {
       String urlForPrompt = url.substring(0, url.contains(";") ? url.indexOf(';') : url.length());

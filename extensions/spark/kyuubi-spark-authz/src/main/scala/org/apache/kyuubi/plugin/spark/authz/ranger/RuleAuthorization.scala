@@ -31,10 +31,15 @@ import org.apache.kyuubi.plugin.spark.authz.rule.Authorization
 import org.apache.kyuubi.plugin.spark.authz.util.AuthZUtils._
 
 case class RuleAuthorization(spark: SparkSession) extends Authorization(spark) {
+  //  final private val LOG = LoggerFactory.getLogger(getClass)
+
   override def checkPrivileges(spark: SparkSession, plan: LogicalPlan): Unit = {
     val auditHandler = new SparkRangerAuditHandler
     val ugi = getAuthzUgi(spark.sparkContext)
     val (inputs, outputs, opType) = PrivilegesBuilder.build(plan, spark)
+    //    LOG.info("=====> opType: {}", opType)
+    //    LOG.info("=====> inputs: {}", inputs)
+    //    LOG.info("=====> outputs: {}", outputs)
 
     // Use a HashSet to deduplicate the same AccessResource and AccessType, the requests will be all
     // the non-duplicate requests and in the same order as the input requests.
@@ -55,24 +60,32 @@ case class RuleAuthorization(spark: SparkSession) extends Authorization(spark) {
     addAccessRequest(inputs, isInput = true)
     addAccessRequest(outputs, isInput = false)
 
-    val requestArrays = requests.map { request =>
-      val resource = request.getResource.asInstanceOf[AccessResource]
-      resource.objectType match {
-        case ObjectType.COLUMN if resource.getColumns.nonEmpty =>
-          resource.getColumns.map { col =>
-            val cr =
-              AccessResource(
-                COLUMN,
-                resource.getDatabase,
-                resource.getTable,
-                col,
-                Option(resource.getOwnerUser),
-                resource.catalog)
-            AccessRequest(cr, ugi, opType, request.accessType).asInstanceOf[RangerAccessRequest]
-          }
-        case _ => Seq(request)
-      }
-    }.toSeq
+    //    LOG.info("=====> requests: {}", requests)
+    //
+    //    val requests_new = requests
+    //      .filter(_.getResource.asInstanceOf[AccessResource].getDatabase != null)
+    //    LOG.info("=====> requests_new: {}", requests_new)
+
+    val requestArrays = requests
+      .filter(_.getResource.asInstanceOf[AccessResource].getDatabase != null)
+      .map { request =>
+        val resource = request.getResource.asInstanceOf[AccessResource]
+        resource.objectType match {
+          case ObjectType.COLUMN if resource.getColumns.nonEmpty =>
+            resource.getColumns.map { col =>
+              val cr =
+                AccessResource(
+                  COLUMN,
+                  resource.getDatabase,
+                  resource.getTable,
+                  col,
+                  Option(resource.getOwnerUser),
+                  resource.catalog)
+              AccessRequest(cr, ugi, opType, request.accessType).asInstanceOf[RangerAccessRequest]
+            }
+          case _ => Seq(request)
+        }
+      }.toSeq
 
     if (authorizeInSingleCall) {
       verify(requestArrays.flatten, auditHandler)

@@ -72,6 +72,20 @@ private[ctl] object Validator {
     }
   }
 
+  def validateFilenameOrContent(cliConfig: CliConfig): Unit = {
+    val filename = cliConfig.createOpts.filename
+    val content = cliConfig.createOpts.content
+
+    if ((filename == null || filename.isEmpty) &&
+      (content == null || content.isEmpty)) {
+      fail(s"Config file or content is not specified.")
+    }
+
+    if (filename != null && filename.nonEmpty) {
+      validateFilename(cliConfig)
+    }
+  }
+
   def validateAdminConfigType(cliConfig: CliConfig): Unit = {
     if (cliConfig.adminConfigOpts.configType == null) {
       fail("The config type is not specified.")

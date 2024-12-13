@@ -81,6 +81,9 @@ object CommandLine extends CommonCommandLine {
           opt[String]('f', "filename")
             .action((v, c) => c.copy(createOpts = c.createOpts.copy(filename = v)))
             .text("Filename to use to create the resource"),
+          opt[String]('c', "content")
+            .action((v, c) => c.copy(createOpts = c.createOpts.copy(content = v)))
+            .text("Content to use to create the resource"),
           createBatchCmd(builder).text("\tOpen batch session."),
           serverCmd(builder).text("\tExpose Kyuubi server instance to another domain.")))
   }
@@ -153,6 +156,9 @@ object CommandLine extends CommonCommandLine {
           opt[String]('f', "filename")
             .action((v, c) => c.copy(createOpts = c.createOpts.copy(filename = v)))
             .text("Filename to use to create the resource"),
+          opt[String]('c', "content")
+            .action((v, c) => c.copy(createOpts = c.createOpts.copy(content = v)))
+            .text("Content to use to create the resource"),
           submitBatchCmd(builder).text("\topen batch session and wait for completion.")))
   }
 

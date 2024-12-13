@@ -28,11 +28,11 @@ import org.apache.kyuubi.ctl.util.{CtlUtils, Render, Validator}
 class SubmitBatchCommand(cliConfig: CliConfig) extends Command[Batch](cliConfig) {
 
   def validate(): Unit = {
-    Validator.validateFilename(normalizedCliConfig)
+    Validator.validateFilenameOrContent(normalizedCliConfig)
   }
 
   def doRun(): Batch = {
-    val map = CtlUtils.loadYamlAsMap(normalizedCliConfig)
+    val map = CtlUtils.loadYamlAsMapV2(normalizedCliConfig)
 
     val createBatchCommand = new CreateBatchCommand(normalizedCliConfig)
     var batch = createBatchCommand.doRun()

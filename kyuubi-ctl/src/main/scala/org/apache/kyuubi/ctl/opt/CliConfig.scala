@@ -57,7 +57,9 @@ case class ZookeeperOpts(
     port: String = null,
     version: String = null)
 
-case class CreateOpts(filename: String = null)
+case class CreateOpts(
+    filename: String = null,
+    content: String = null)
 
 case class LogOpts(forward: Boolean = false)
 

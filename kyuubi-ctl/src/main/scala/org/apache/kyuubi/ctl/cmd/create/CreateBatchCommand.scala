@@ -31,14 +31,16 @@ import org.apache.kyuubi.ctl.cmd.Command
 import org.apache.kyuubi.ctl.opt.CliConfig
 import org.apache.kyuubi.ctl.util.{CtlUtils, Render, Validator}
 
+
+
 class CreateBatchCommand(cliConfig: CliConfig) extends Command[Batch](cliConfig) {
 
   def validate(): Unit = {
-    Validator.validateFilename(normalizedCliConfig)
+    Validator.validateFilenameOrContent(normalizedCliConfig)
   }
 
   def doRun(): Batch = {
-    val map = CtlUtils.loadYamlAsMap(normalizedCliConfig)
+    val map = CtlUtils.loadYamlAsMapV2(normalizedCliConfig)
 
     withKyuubiRestClient(normalizedCliConfig, map, conf) { kyuubiRestClient =>
       val batchRestApi: BatchRestApi = new BatchRestApi(kyuubiRestClient)
@@ -62,16 +64,45 @@ class CreateBatchCommand(cliConfig: CliConfig) extends Command[Batch](cliConfig)
         config,
         args)
 
-      val pathType = checkPathType(batchRequest.getResource)
-      if (pathType == "HDFS") {
-        batchRestApi.createBatch(batchRequest)
-      } else if (pathType == "Local") {
-        val file = Paths.get(batchRequest.getResource).toFile
-        batchRestApi.createBatch(batchRequest, file)
-      } else {
-        error(s"Unsupported resource path")
-        throw ControlCliException(1)
+      checkPathType(batchRequest.getResource) match {
+        case "HDFS" => batchRestApi.createBatch(batchRequest)
+        case "Local" =>
+          val file = Paths.get(batchRequest.getResource).toFile
+          val extraResources = Option(request.get("extraResources")
+            .asInstanceOf[JList[Object]].asScala)
+            .map(_.map(x => x.toString).asJava)
+            .getOrElse(Collections.emptyList())
+          // info(s"========== extraResources: ${extraResources}")
+
+          if (extraResources.isEmpty) {
+            batchRestApi.createBatch(batchRequest, file)
+          } else {
+            val extraResourceNames = extraResources.asScala.distinct
+              .filter(_.nonEmpty)
+              .map(path => Paths.get(path).toFile.getName)
+              .mkString(",")
+            // info(s"========== extraResourceNames: ${extraResourceNames}")
+            // batchRequest.setExtraResourcesMap(Map(
+            //     "spark.submit.pyFiles" -> "non-existed-zip.zip",
+            //     "spark.files" -> "non-existed-jar.jar",
+            //     "spark.some.config1" -> "").asJava)
+            batchRequest.getBatchType match {
+              case "PYSPARK" =>
+                batchRequest.setExtraResourcesMap(Map(
+                  "spark.submit.pyFiles" -> extraResourceNames).asJava)
+              case "SPARK" =>
+                batchRequest.setExtraResourcesMap(Map(
+                  "spark.jars" -> extraResourceNames).asJava)
+              case _ => error(s"Unsupported BatchType")
+            }
+
+            batchRestApi.createBatch(batchRequest, file, extraResources)
+          }
+        case _ =>
+          error(s"Unsupported resource path")
+          throw ControlCliException(1)
       }
+
     }
   }
 

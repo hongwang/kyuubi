@@ -118,4 +118,21 @@ object CtlUtils {
     }
     map
   }
+
+  private[ctl] def loadYamlAsMapV2(cliConfig: CliConfig): JMap[String, Object] = {
+    val filename = cliConfig.createOpts.filename
+    if (filename !=null && filename.nonEmpty) {
+      loadYamlAsMap(cliConfig)
+    } else {
+      val content = cliConfig.createOpts.content
+      var map: JMap[String, Object] = null
+      try {
+        val yaml = new Yaml()
+        map = yaml.load(content).asInstanceOf[JMap[String, Object]]
+      } catch {
+        case e: Exception => throw new KyuubiException(s"Failed to read yaml file[$filename]: $e")
+      }
+      map
+    }
+  }
 }
